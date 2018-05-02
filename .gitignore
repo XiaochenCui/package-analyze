@@ -2,3 +2,7 @@
 *.swo
 
 *.pyc
+
+.idea
+
+*.log

@@ -1,20 +1,30 @@
 import subprocess
 
 
-def run_tcpdump(interface, count=None):
-    base_args = ["sudo", "tcpdump", "-l"]
+def run_tcpdump(interface, port=None, count=None):
+    base_args = ["sudo", "tcpdump", "-l", "-s", "0", "-U", "-n", "-w", "-"]
+
     option_args = ["-i", interface]
     if count:
         option_args.append("-c")
         option_args.append(count)
-    args = base_args + option_args
+
+    expression = []
+    if port:
+        expression.append("port")
+        expression.append(port)
+
+    args = base_args + option_args + expression
+
     tcpdump_process = subprocess.Popen(
         args,
         stdout=subprocess.PIPE,
     )
     for row in iter(tcpdump_process.stdout.readline, b""):
         print("package captured:")
-        print(row.rstrip())
+        print(row)
+        import binascii
+        print(binascii.hexlify(row))
 
 
 def main():
@@ -30,9 +40,15 @@ def main():
         "--count",
         type=str,
     )
+    parser.add_argument(
+        "-p",
+        "--port",
+        type=str,
+    )
     args = parser.parse_args()
     run_tcpdump(
         interface=args.interface,
+        port=args.port,
         count=args.count,
     )
 
