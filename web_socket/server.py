@@ -1,4 +1,5 @@
 import logging.config
+from os import linesep
 
 from autobahn.twisted.websocket import WebSocketServerProtocol, \
     WebSocketServerFactory
@@ -10,9 +11,9 @@ logger = logging.getLogger(__name__)
 
 
 class UserInputProtocol(basic.LineReceiver):
-    from os import linesep as delimiter
+    """Handle input bytestream"""
 
-    delimiter = delimiter.encode("utf8")
+    delimiter = linesep.encode("utf8")
 
     def __init__(self, callback):
         self.callback = callback
@@ -21,7 +22,7 @@ class UserInputProtocol(basic.LineReceiver):
         self.callback(line)
 
 
-class MyServerProtocol(WebSocketServerProtocol):
+class DebugPackageServerProtocol(WebSocketServerProtocol):
 
     def onConnect(self, request):
         logger.debug("Client connecting: {0}".format(request.peer))
@@ -29,15 +30,6 @@ class MyServerProtocol(WebSocketServerProtocol):
 
     def onOpen(self):
         logger.debug("WebSocket connection open.")
-
-    def onMessage(self, payload, isBinary):
-        if isBinary:
-            logger.debug("Binary message received: {0} bytes".format(len(payload)))
-        else:
-            logger.debug("Text message received: {0}".format(payload.decode("utf8")))
-
-        # echo back message verbatim
-        self.sendMessage(payload, isBinary)
 
     def onClose(self, wasClean, code, reason):
         logger.debug("WebSocket connection closed: {0}".format(reason))
@@ -56,8 +48,6 @@ class MyServerProtocol(WebSocketServerProtocol):
 
         # truncat payload by length
         length = int(dic["length"], 16)
-        logger.debug(length)
-        logger.debug(dic["payload"])
         if len(dic["payload"]) > 2 * length:
             dic["checksum"] = dic["payload"][2 * length:2 * length + 2]
             dic["payload"] = dic["payload"][:2 * length]
@@ -65,14 +55,13 @@ class MyServerProtocol(WebSocketServerProtocol):
         import json
         logger.debug(dic)
         data = json.dumps(dic).encode("ascii")
-        logger.debug(data)
 
         self.sendMessage(data, False)
 
 
 class DebugPackageServerFactory(WebSocketServerFactory):
 
-    protocol = MyServerProtocol
+    protocol = DebugPackageServerProtocol
 
     def __init__(self):
         from twisted.internet import stdio
@@ -96,7 +85,7 @@ class DebugPackageServerFactory(WebSocketServerFactory):
         import re
         match = re.search(r"2323\w+", hex_representation)
         if match:
-            package = match.group(0)[:-12]
+            package = match.group(0)
             logger.debug(package)
             if len(package) > 10:
                 self.broadcast_packages(package)
@@ -112,7 +101,7 @@ def main():
     from twisted.internet import reactor
 
     factory = DebugPackageServerFactory()
-    factory.protocol = MyServerProtocol
+    factory.protocol = DebugPackageServerProtocol
 
     reactor.listenTCP(9000, factory)
 
