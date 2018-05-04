@@ -1,4 +1,8 @@
+import logging
 from collections import namedtuple
+
+
+logger = logging.getLogger(__name__)
 
 
 Unit = namedtuple("Unit", ["start", "end"])
@@ -19,6 +23,8 @@ def deconstruct_package(data):
     :type data: bytes
     :rtype: dict
     """
+    logger.debug(data)
+    logger.debug(len(data))
     dic = {
         "start": data[0:2],
         "command_flag": data[2],

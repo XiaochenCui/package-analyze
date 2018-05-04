@@ -1,30 +1,51 @@
 import subprocess
+import logging.config
+
+logging.config.fileConfig("config/logging_config.ini")
+logger = logging.getLogger(__name__)
 
 
-def run_tcpdump(interface, port=None, count=None):
+def run_tcpdump(interface, port, count):
     base_args = ["sudo", "tcpdump", "-l", "-s", "0", "-U", "-n", "-w", "-"]
 
+    # add interface info
     option_args = ["-i", interface]
+
+    # add count info
     if count:
         option_args.append("-c")
         option_args.append(count)
 
     expression = []
+
+    # add port info
     if port:
         expression.append("port")
         expression.append(port)
 
     args = base_args + option_args + expression
 
+    logger.debug(args)
     tcpdump_process = subprocess.Popen(
         args,
         stdout=subprocess.PIPE,
     )
-    for row in iter(tcpdump_process.stdout.readline, b""):
-        print("package captured:")
-        print(row)
-        import binascii
-        print(binascii.hexlify(row))
+
+    tcpflow_args = ["tcpflow", "-B", "-c", "-r", "-"]
+
+    logger.debug(tcpflow_args)
+    tcpflow_process = subprocess.Popen(
+        tcpflow_args,
+        stdin=tcpdump_process.stdout,
+        stdout=subprocess.PIPE,
+    )
+
+    websocket_server_process = subprocess.Popen(
+        ("python", "web_socket/server.py", "-i", interface, "-p", port),
+        stdin=tcpflow_process.stdout,
+    )
+
+    websocket_server_process.wait()
 
 
 def main():
@@ -34,15 +55,17 @@ def main():
         "-i",
         "--interface",
         type=str,
-    )
-    parser.add_argument(
-        "-c",
-        "--count",
-        type=str,
+        required=True,
     )
     parser.add_argument(
         "-p",
         "--port",
+        type=str,
+        required=True,
+    )
+    parser.add_argument(
+        "-c",
+        "--count",
         type=str,
     )
     args = parser.parse_args()
