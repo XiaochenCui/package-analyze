@@ -177,7 +177,7 @@ def main():
     factory = DebugPackageServerFactory(args.interface, args.port)
     factory.protocol = DebugPackageServerProtocol
 
-    reactor.listenTCP(9000, factory)
+    reactor.listenTCP(4030, factory)
 
     reactor.run()
 

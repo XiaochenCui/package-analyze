@@ -9,7 +9,7 @@
         var socket = null;
         var isopen = false;
         window.onload = function () {
-            var web_socket_url = "ws://" + location.host.replace(/:\d+/, ":9000");
+            var web_socket_url = "ws://" + location.host.replace(/:\d+/, ":4030");
             console.log(web_socket_url);
             socket = new WebSocket(web_socket_url);
             socket.binaryType = "arraybuffer";
