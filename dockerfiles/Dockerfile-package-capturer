@@ -1,0 +1,8 @@
+FROM python:2.7
+LABEL version=0.1
+RUN apt-get update && \
+    apt-get install -y tcpdump tcpflow
+ADD . /code
+WORKDIR /code
+ENV PYTHONPATH .
+RUN pip install -r requirements.txt
