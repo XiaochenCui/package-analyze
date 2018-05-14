@@ -8,6 +8,7 @@ services:
     volumes:
       - ".:/code"
     network_mode: "container:dfjk_fuel_server"
+    container_name: dfjk_fuel_debug
   frontend:
     build:
       context: .
