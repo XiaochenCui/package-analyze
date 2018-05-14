@@ -1,7 +1,11 @@
-# Interval between terminal upload real-time status
-REPORT_STATUS_INTERVAL = 10
+WEB_SOCKET_PORT = 4061
 
-WEB_SOCKET_PORT = 4021
+import getpass
+username = getpass.getuser()
+if username == 'root':
+    RUN_AS_ROOT = True
+else:
+    RUN_AS_ROOT = False
 
 try:
     from local_config import *

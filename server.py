@@ -1,12 +1,17 @@
 import subprocess
 import logging.config
 
+from config import config
+
 logging.config.fileConfig("config/logging_config.ini")
 logger = logging.getLogger(__name__)
 
 
 def run_tcpdump(interface, port, count):
     base_args = ["sudo", "tcpdump", "-l", "-s", "0", "-U", "-n", "-w", "-"]
+
+    if config.RUN_AS_ROOT:
+        del base_args[0]
 
     # add interface info
     option_args = ["-i", interface]

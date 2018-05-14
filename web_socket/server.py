@@ -5,6 +5,8 @@ from autobahn.twisted.websocket import WebSocketServerProtocol, \
     WebSocketServerFactory
 from twisted.protocols import basic
 
+from config import config
+
 
 logging.config.fileConfig("config/logging_config.ini")
 logger = logging.getLogger(__name__)
@@ -48,6 +50,10 @@ class DebugPackageServerProtocol(WebSocketServerProtocol):
 
         logger.debug(dic)
 
+        def split_str_by_step(string, step):
+            for i in range(0, len(string), step):
+                yield string[i:i + step]
+
         import binascii
         for k, v in dic.items():
             if isinstance(v, int):
@@ -55,7 +61,10 @@ class DebugPackageServerProtocol(WebSocketServerProtocol):
             if isinstance(v, str):
                 v = v.encode("utf8")
                 continue
-            dic[k] = binascii.hexlify(v).decode("ascii")
+            v = binascii.hexlify(v).decode("ascii")
+            v = list(split_str_by_step(v, 2))
+            v = ' '.join(v)
+            dic[k] = v
 
         logger.debug(dic)
 
@@ -82,7 +91,7 @@ class DebugPackageServerFactory(WebSocketServerFactory):
         stdio.StandardIO(UserInputProtocol(self.user_input_received))
 
         super(DebugPackageServerFactory, self).__init__(
-            "ws://127.0.0.1:{port}".format(port=9000)
+            "ws://127.0.0.1:{port}".format(port=config.WEB_SOCKET_PORT)
         )
         self.protocol_pool = []
 
@@ -95,6 +104,8 @@ class DebugPackageServerFactory(WebSocketServerFactory):
         """
         # data example: 120.026.081.035.04020-192.168.003.192.60036: ##TTUJJJ563EM063163,
         package = self.pretreatment_data(data)
+        if not package:
+            return
 
         self.sender = self.get_sender(package)
 
@@ -104,8 +115,10 @@ class DebugPackageServerFactory(WebSocketServerFactory):
         import re
         pattern = re.compile(b"(?P<source_host>.+?)\.(?P<source_port>\d{5})-(?P<dest_host>.+?)\.(?P<dest_port>\d{5}): (?P<tcp_data>.+)")
         match = pattern.match(data)
-        logger.debug(match.groupdict())
-        return match.groupdict()
+        if match:
+            logger.debug(match.groupdict())
+            return match.groupdict()
+        logger.info('Invalid package: {}'.format(data))
 
     def broadcast_packages(self, data):
         for protocol in self.protocol_pool:
@@ -177,7 +190,7 @@ def main():
     factory = DebugPackageServerFactory(args.interface, args.port)
     factory.protocol = DebugPackageServerProtocol
 
-    reactor.listenTCP(4030, factory)
+    reactor.listenTCP(config.WEB_SOCKET_PORT, factory)
 
     reactor.run()
 

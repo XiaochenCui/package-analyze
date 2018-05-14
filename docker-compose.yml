@@ -4,12 +4,10 @@ services:
     build:
       context: .
       dockerfile: dockerfiles/Dockerfile-package-capturer
-    command: python server.py -i eth0 -p 4020
+    command: python server.py -i eth0 -p 80
     volumes:
       - ".:/code"
-    ports:
-      - "4061:14061"
-    network_mode: "host"
+    network_mode: "container:dfjk_fuel_server"
   frontend:
     build:
       context: .
