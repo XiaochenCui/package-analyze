@@ -57,3 +57,28 @@ def deconstruct_hex_package(data):
         "checksum": data[-2:],
     }
     return dic
+
+
+def get_package_type(package):
+    """
+    Get package's type
+
+    :param package:
+    :type package: dict
+    :rtype: str
+    """
+    command_flag = package["command_flag"]
+    answer_flag = package["answer_flag"]
+    if command_flag == 0x01:
+        if answer_flag == 0xFE:
+            return "Login"
+        return "Reply to login"
+    elif command_flag == 0x02:
+        if answer_flag == 0xFE:
+            return "Real time status"
+        return "Reply to real time status"
+    elif command_flag == 0x82:
+        if answer_flag == 0xFE:
+            return "Control command"
+        return "Reply to control command"
+    return "Unknown"

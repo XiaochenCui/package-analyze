@@ -42,7 +42,8 @@ class DebugPackageServerProtocol(WebSocketServerProtocol):
         dic = deconstruct_package(data)
 
         dic["sender"] = sender
-        dic["package_type"] = package_type
+        from utils.deconstruct_package import get_package_type
+        dic["package_type"] = get_package_type(dic)
         import datetime
         dic["datetime"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
