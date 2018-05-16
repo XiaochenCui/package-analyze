@@ -59,26 +59,79 @@ def deconstruct_hex_package(data):
     return dic
 
 
-def get_package_type(package):
-    """
-    Get package's type
+class PackageHandler():
 
-    :param package:
-    :type package: dict
-    :rtype: str
-    """
-    command_flag = package["command_flag"]
-    answer_flag = package["answer_flag"]
-    if command_flag == 0x01:
-        if answer_flag == 0xFE:
-            return "Login"
-        return "Reply to login"
-    elif command_flag == 0x02:
-        if answer_flag == 0xFE:
-            return "Real time status"
-        return "Reply to real time status"
-    elif command_flag == 0x82:
-        if answer_flag == 0xFE:
-            return "Control command"
-        return "Reply to control command"
-    return "Unknown"
+    def __init__(self):
+        self.redis_conn = self.get_redis_conn()
+
+    def get_redis_conn(self):
+        import redis
+        from config import config
+        conn = redis.StrictRedis(
+            host=config.REDIS_HOST,
+            port=config.REDIS_PORT,
+        )
+        return conn
+
+    def establish_db_conn(self):
+        conn = psycopg2.connect(
+            dbname='dfjk-fuel',
+            user='postgres',
+            host='db',
+        )
+        self.db_conn = conn
+
+    def get_package_type(self, package):
+        """
+        Get package's type
+
+        :param package:
+        :type package: dict
+        :rtype: str
+        """
+        command_flag = package["command_flag"]
+        answer_flag = package["answer_flag"]
+
+        payload = package['payload']
+        vin = package['unique_code']
+        timestamp = payload[:6]
+
+        logger.debug((answer_flag, len(payload)))
+        if answer_flag != 0xFE and len(payload) == 6:
+            # This is a response package
+            logger.debug((type(vin), vin))
+            logger.debug((type(timestamp), timestamp))
+
+            conn = self.redis_conn
+            key = "package_type:{}".format(vin)
+            values = conn.hgetall(key)
+            logger.debug(values)
+            package_type = conn.hget(key, timestamp)
+            conn.hdel(key, timestamp)
+
+            return "Reply to " + package_type.decode(), None
+
+        if command_flag == 0x01:
+            package_type = "Login"
+        elif command_flag == 0x02:
+            package_type = "Real time status"
+        elif command_flag == 0x82:
+            import binascii
+            logger.debug(binascii.hexlify(package['payload']))
+            command_id = package['payload'][6]
+
+            if command_id == 0x80:
+                package_type = "Lock command"
+            elif command_id == 0x81:
+                package_type = "Lock command (limit rotate speed)"
+            elif command_id == 0x82:
+                package_type = "Lock command (limit torque)"
+            elif command_id == 0x90:
+                package_type = "Unlock command"
+
+            elif command_id == 0x55:
+                package_type = "Bind command"
+            elif command_id == 0xAA:
+                package_type = "Unbind command"
+
+        return package_type, timestamp

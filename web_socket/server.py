@@ -42,8 +42,20 @@ class DebugPackageServerProtocol(WebSocketServerProtocol):
         dic = deconstruct_package(data)
 
         dic["sender"] = sender
-        from utils.deconstruct_package import get_package_type
-        dic["package_type"] = get_package_type(dic)
+
+        from utils.deconstruct_package import PackageHandler
+        package_handler = PackageHandler()
+
+        package_type, timestamp = package_handler.get_package_type(dic)
+        vin = dic['unique_code']
+        dic["package_type"] = package_type
+
+        if timestamp:
+            conn = package_handler.redis_conn
+            key = "package_type:{}".format(vin)
+            conn.hset(key, timestamp, package_type)
+            conn.expire(key, 10)
+
         import datetime
         dic["datetime"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -118,6 +130,9 @@ class DebugPackageServerFactory(WebSocketServerFactory):
         match = pattern.match(data)
         if match:
             logger.debug(match.groupdict())
+            import binascii
+            hex_data = binascii.hexlify(match.groupdict()['tcp_data'])
+            logger.debug('raw data: {}'.format(hex_data))
             return match.groupdict()
         logger.info('Invalid package: {}'.format(data))
 
