@@ -1,11 +1,24 @@
+import datetime
 import logging.config
+import binascii
+import json
+import re
 from os import linesep
+import argparse
 
-from autobahn.twisted.websocket import WebSocketServerProtocol, \
-    WebSocketServerFactory
+import netifaces
+from autobahn.twisted.websocket import (
+    WebSocketServerProtocol,
+    WebSocketServerFactory,
+)
 from twisted.protocols import basic
+from twisted.internet import stdio
 
 from config import config
+from utils.deconstruct_package import (
+    deconstruct_package,
+    PackageHandler,
+)
 
 
 logging.config.fileConfig("config/logging_config.ini")
@@ -38,12 +51,10 @@ class DebugPackageServerProtocol(WebSocketServerProtocol):
         self.factory.protocol_pool.remove(self)
 
     def send_package(self, data, sender="client", vin="haha", package_type="unknown"):
-        from utils.deconstruct_package import deconstruct_package
         dic = deconstruct_package(data)
 
         dic["sender"] = sender
 
-        from utils.deconstruct_package import PackageHandler
         package_handler = PackageHandler()
 
         package_type, timestamp = package_handler.get_package_type(dic)
@@ -56,18 +67,14 @@ class DebugPackageServerProtocol(WebSocketServerProtocol):
             conn.hset(key, timestamp, package_type)
             conn.expire(key, 10)
 
-        import datetime
         dic["datetime"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         dic["vin"] = vin
-
-        logger.debug(dic)
 
         def split_str_by_step(string, step):
             for i in range(0, len(string), step):
                 yield string[i:i + step]
 
-        import binascii
         for k, v in dic.items():
             if isinstance(v, int):
                 v = bytes([v])
@@ -79,9 +86,6 @@ class DebugPackageServerProtocol(WebSocketServerProtocol):
             v = ' '.join(v)
             dic[k] = v
 
-        logger.debug(dic)
-
-        import json
         data = json.dumps(dic).encode("ascii")
 
         self.sendMessage(data, False)
@@ -100,7 +104,6 @@ class DebugPackageServerFactory(WebSocketServerFactory):
         self.interface = interface
         self.server_port = server_port
 
-        from twisted.internet import stdio
         stdio.StandardIO(UserInputProtocol(self.user_input_received))
 
         super(DebugPackageServerFactory, self).__init__(
@@ -125,14 +128,11 @@ class DebugPackageServerFactory(WebSocketServerFactory):
         self.broadcast_packages(package["tcp_data"])
 
     def pretreatment_data(self, data):
-        import re
         pattern = re.compile(b"(?P<source_host>.+?)\.(?P<source_port>\d{5})-(?P<dest_host>.+?)\.(?P<dest_port>\d{5}): (?P<tcp_data>.+)")
         match = pattern.match(data)
         if match:
-            logger.debug(match.groupdict())
-            import binascii
+            logger.debug('Tcp package: {}'.format(match.groupdict()))
             hex_data = binascii.hexlify(match.groupdict()['tcp_data'])
-            logger.debug('raw data: {}'.format(hex_data))
             return match.groupdict()
         logger.info('Invalid package: {}'.format(data))
 
@@ -141,7 +141,6 @@ class DebugPackageServerFactory(WebSocketServerFactory):
             protocol.send_package(data, sender=self.sender)
 
     def get_local_ip(self):
-        import netifaces
         local_ip = netifaces.ifaddresses(self.interface)[netifaces.AF_INET][0]['addr']
         return local_ip
 
@@ -178,7 +177,6 @@ class DebugPackageServerFactory(WebSocketServerFactory):
 
 
 def parse_args():
-    import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-i",
@@ -197,8 +195,6 @@ def parse_args():
 
 
 def main():
-    import sys
-
     args = parse_args()
 
     from twisted.internet import reactor

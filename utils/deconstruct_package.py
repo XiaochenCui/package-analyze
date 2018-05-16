@@ -23,8 +23,6 @@ def deconstruct_package(data):
     :type data: bytes
     :rtype: dict
     """
-    logger.debug(data)
-    logger.debug(len(data))
     dic = {
         "start": data[0:2],
         "command_flag": data[2],
@@ -96,16 +94,11 @@ class PackageHandler():
         vin = package['unique_code']
         timestamp = payload[:6]
 
-        logger.debug((answer_flag, len(payload)))
         if answer_flag != 0xFE and len(payload) == 6:
             # This is a response package
-            logger.debug((type(vin), vin))
-            logger.debug((type(timestamp), timestamp))
-
             conn = self.redis_conn
             key = "package_type:{}".format(vin)
             values = conn.hgetall(key)
-            logger.debug(values)
             package_type = conn.hget(key, timestamp)
             conn.hdel(key, timestamp)
 
@@ -116,8 +109,6 @@ class PackageHandler():
         elif command_flag == 0x02:
             package_type = "Real time status"
         elif command_flag == 0x82:
-            import binascii
-            logger.debug(binascii.hexlify(package['payload']))
             command_id = package['payload'][6]
 
             if command_id == 0x80:
