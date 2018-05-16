@@ -32,6 +32,7 @@ def deconstruct_package(data):
         "length": data[22:24],
         "payload": data[24:-1],
         "checksum": data[-1],
+        "raw_data": data,
     }
     return dic
 
@@ -101,6 +102,12 @@ class PackageHandler():
             values = conn.hgetall(key)
             package_type = conn.hget(key, timestamp)
             conn.hdel(key, timestamp)
+
+            if package_type is None:
+                logger.info("Cannnot find request package for response package {}".format(
+                    binascii.hexlify(package["raw_data"]),
+                ))
+                return "Unknown", None
 
             return "Reply to " + package_type.decode(), None
 
