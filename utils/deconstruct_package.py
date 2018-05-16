@@ -1,5 +1,6 @@
 import logging
 from collections import namedtuple
+import binascii
 
 
 logger = logging.getLogger(__name__)
