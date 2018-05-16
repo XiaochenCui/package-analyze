@@ -16,7 +16,7 @@ services:
     volumes:
       - "./front_end:/usr/share/nginx/html"
     ports:
-      - "4062:80"
+      - "4030:80"
 networks:
   default:
     external:
