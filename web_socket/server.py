@@ -131,9 +131,11 @@ class DebugPackageServerFactory(WebSocketServerFactory):
         pattern = re.compile(b"(?P<source_host>.+?)\.(?P<source_port>\d{5})-(?P<dest_host>.+?)\.(?P<dest_port>\d{5}): (?P<tcp_data>.+)")
         match = pattern.match(data)
         if match:
-            logger.debug('Tcp package: {}'.format(match.groupdict()))
-            hex_data = binascii.hexlify(match.groupdict()['tcp_data'])
-            return match.groupdict()
+            tcp_dic = match.groupdict()
+            logger.debug('Tcp package: {}'.format(tcp_dic))
+            hex_data = binascii.hexlify(tcp_dic['tcp_data'])
+            logger.debug('Hex representation of package: {}'.format(hex_data))
+            return tcp_dic
         logger.info('Invalid package: {}'.format(data))
 
     def broadcast_packages(self, data):
