@@ -69,7 +69,7 @@ class DebugPackageServerProtocol(WebSocketServerProtocol):
 
         dic["datetime"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        dic["vin"] = vin
+        dic["vin"] = vin.decode()
 
         def split_str_by_step(string, step):
             for i in range(0, len(string), step):
