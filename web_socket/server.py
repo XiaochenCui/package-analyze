@@ -142,10 +142,6 @@ class DebugPackageServerFactory(WebSocketServerFactory):
         for protocol in self.protocol_pool:
             protocol.send_package(data, sender=self.sender)
 
-    def get_local_ip(self):
-        local_ip = netifaces.ifaddresses(self.interface)[netifaces.AF_INET][0]['addr']
-        return local_ip
-
     def get_sender(self, package):
         """
         Get sender
@@ -154,8 +150,6 @@ class DebugPackageServerFactory(WebSocketServerFactory):
         :type package: dict
         :rtype: string
         """
-        local_ip = self.get_local_ip()
-
         if int(package["dest_port"]) == self.server_port:
             return "client"
         return "server"
