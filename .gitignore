@@ -9,3 +9,5 @@
 
 *.txt
 *.xml
+
+.DS_Store

@@ -22,20 +22,21 @@ def deconstruct_package(data):
 
     :param data: package content
     :type data: bytes
-    :rtype: dict
+    :rtype: Bunch
     """
-    dic = {
-        "start": data[0:2],
-        "command_flag": data[2],
-        "answer_flag": data[3],
-        "unique_code": data[4:21],
-        "encrypto_method": data[21],
-        "length": data[22:24],
-        "payload": data[24:-1],
-        "checksum": data[-1],
-        "raw_data": data,
-    }
-    return dic
+    from bunch import Bunch
+    package = Bunch()
+    package.start = data[0:2]
+    from utils.type_convert import bytes_to_int
+    package.command_flag = data[2]
+    package.answer_flag = data[3]
+    package.unique_code = data[4:21]
+    package.encrypto_method = data[21]
+    package.length = bytes_to_int(data[22:24])
+    package.payload = data[24:-1]
+    package.checksum = data[-1]
+    package.raw_data = data
+    return package
 
 
 def deconstruct_hex_package(data):
