@@ -113,10 +113,14 @@ class PackageHandler():
 
             return "Reply to " + package_type.decode(), None
 
+        package_type = "Unknown"
+
         if command_flag == 0x01:
             package_type = "Login"
+
         elif command_flag == 0x02:
             package_type = "Real time status"
+
         elif command_flag == 0x82:
             command_id = package['payload'][6]
 
@@ -133,5 +137,13 @@ class PackageHandler():
                 package_type = "Bind command"
             elif command_id == 0xAA:
                 package_type = "Unbind command"
+
+        elif command_flag == 0x09:
+            command_id = package['payload'][6]
+
+            if command_id == 0x55:
+                package_type = "Report bind result"
+            elif command_id == 0xAA:
+                package_type = "Report unbind result"
 
         return package_type, timestamp
