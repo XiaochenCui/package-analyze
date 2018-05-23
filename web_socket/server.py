@@ -104,7 +104,7 @@ class DebugPackageServerFactory(WebSocketServerFactory):
         logger.info('Invalid package: {}'.format(data))
 
     def package_gateway(self, data):
-        pattern = re.compile(b"(?P<source_host>.+?)\.(?P<source_port>\d{5})-(?P<dest_host>.+?)\.(?P<dest_port>\d{5}): (?P<tcp_data>.+)")
+        pattern = re.compile(b"(?P<source_host>.+?)\.(?P<source_port>\d{5})-(?P<dest_host>.+?)\.(?P<dest_port>\d{5}): (?P<tcp_payload>.+)")
         match = pattern.match(data)
         if match:
             tcp_dic = match.groupdict()
@@ -112,7 +112,18 @@ class DebugPackageServerFactory(WebSocketServerFactory):
 
             self.sender = self.get_sender(tcp_dic)
 
-            package = deconstruct_package(tcp_dic['tcp_data'])
+            tcp_payload = tcp_dic['tcp_payload']
+
+            # Filter out invalid package, usually it's because those poor souls
+            # put the gateway address in the browser's address bar, which cause
+            #package us to receive some http packages.
+            if tcp_payload[:2] != b'##':
+                logger.info("Receive a http package send by those poor souls")
+                logger.info('Tcp payload: {}'.format(tcp_payload))
+                return
+
+            package = deconstruct_package(tcp_payload)
+
             if len(package.payload) < package.length:
                 logger.info("A truncated package: {}".format(package.payload))
                 self.data_temp = package.raw_data
@@ -120,6 +131,11 @@ class DebugPackageServerFactory(WebSocketServerFactory):
 
             return self.process_package(package)
         else:
+            if self.data_temp is None:
+                logger.info("Receive a http package send by those poor souls")
+                logger.info('Tcp payload: {}'.format(data))
+                return
+
             self.data_temp = self.data_temp + b'\n' + data
 
             package = deconstruct_package(self.data_temp)

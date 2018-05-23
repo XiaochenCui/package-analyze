@@ -145,5 +145,13 @@ class PackageHandler():
                 package_type = "Report bind result"
             elif command_id == 0xAA:
                 package_type = "Report unbind result"
+            elif command_id == 0x80:
+                package_type = "Report lock result"
+            elif command_id == 0x81:
+                package_type = "Report limite rotate speed result"
+            elif command_id == 0x82:
+                package_type = "Report limite torque result"
+            elif command_id == 0x90:
+                package_type = "Report unlock result"
 
         return package_type, timestamp
