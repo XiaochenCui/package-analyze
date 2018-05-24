@@ -121,6 +121,9 @@ class PackageHandler():
         elif command_flag == 0x02:
             package_type = "Real time status"
 
+        elif command_flag == 0x03:
+            package_type = "Reissue package"
+
         elif command_flag == 0x82:
             command_id = package['payload'][6]
 
