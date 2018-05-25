@@ -3,3 +3,4 @@ netifaces==0.10.7
 Twisted==18.4.0
 redis==2.10.6
 bunch==1.0.1
+psycopg2==2.7.4

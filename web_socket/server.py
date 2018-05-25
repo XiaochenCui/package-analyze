@@ -74,6 +74,32 @@ class DebugPackageServerFactory(WebSocketServerFactory):
 
         self.data_temp = None
 
+        self.establish_db_conn()
+
+    def establish_db_conn(self):
+        conn = psycopg2.connect(
+            dbname=config.DB_NAME,
+            user='postgres',
+            host=config.DB_HOST,
+        )
+        self.db_conn = conn
+
+    def store_package(self, data):
+        """
+        Store a package
+
+        :param data: package content
+        :type data: string
+        """
+        insert_statement = "insert into car_package(row_data) values ({})".format(
+            psycopg2.Binary(data),
+        )
+        if self.db_conn.closed:
+            self.establish_db_conn()
+        cursor = self.db_conn.cursor()
+        cursor.execute(insert_statement.encode('ascii'))
+        self.db_conn.commit()
+
     def user_input_received(self, data):
         """
         Process user input
@@ -85,23 +111,6 @@ class DebugPackageServerFactory(WebSocketServerFactory):
         data = self.package_gateway(data)
         if data:
             self.broadcast_packages(data)
-
-    def pretreatment_data(self, data):
-        if self.data_temp:
-            logger.debug((self.data_temp, data))
-            data = self.data_temp + data
-            logger.debug(data)
-
-        pattern = re.compile(b"(?P<source_host>.+?)\.(?P<source_port>\d{5})-(?P<dest_host>.+?)\.(?P<dest_port>\d{5}): (?P<tcp_data>.+)")
-        match = pattern.match(data)
-        if match:
-            tcp_dic = match.groupdict()
-            logger.debug('Tcp package: {}'.format(tcp_dic))
-            hex_data = binascii.hexlify(tcp_dic['tcp_data'])
-            logger.debug('Hex representation of package: {}'.format(hex_data))
-            return tcp_dic
-
-        logger.info('Invalid package: {}'.format(data))
 
     def package_gateway(self, data):
         pattern = re.compile(b"(?P<source_host>.+?)\.(?P<source_port>\d{5})-(?P<dest_host>.+?)\.(?P<dest_port>\d{5}): (?P<tcp_payload>.+)")
@@ -116,7 +125,7 @@ class DebugPackageServerFactory(WebSocketServerFactory):
 
             # Filter out invalid package, usually it's because those poor souls
             # put the gateway address in the browser's address bar, which cause
-            #package us to receive some http packages.
+            # us to receive some http packages.
             if tcp_payload[:2] != b'##':
                 logger.info("Receive a http package send by those poor souls")
                 logger.info('Tcp payload: {}'.format(tcp_payload))
@@ -125,6 +134,16 @@ class DebugPackageServerFactory(WebSocketServerFactory):
             package = deconstruct_package(tcp_payload)
 
             if len(package.payload) < package.length:
+                # There is a bug in the program: since the tcp package are
+                # received as binary data, if there is new line character in
+                # tcp package, the package will be truncated to two and send to
+                # input handler seperately.
+                #
+                # Since this problem is caused by binary security, changing the
+                # separator cant't solve it.
+                #
+                # So we temporary deposit truncated packages and connect them
+                # later on.
                 logger.info("A truncated package: {}".format(package.payload))
                 self.data_temp = package.raw_data
                 return
@@ -162,15 +181,8 @@ class DebugPackageServerFactory(WebSocketServerFactory):
         return "server"
 
     def process_package(self, package):
-        # There is a bug in the program: since the tcp package are received as
-        # binary data, if there is new line character in tcp package, the
-        # package will be truncated to two and send to input handler
-        # seperately.
-        #
-        # Since this problem is caused by binary security, changing the
-        # separator cant't solve it.
-        #
-        # So we temporary deposit truncated packages and connect them later on.
+        self.store_package(package.raw_data)
+
         package["sender"] = self.sender
 
         package_handler = PackageHandler()
