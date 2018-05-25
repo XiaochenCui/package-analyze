@@ -5,8 +5,8 @@ import json
 import re
 from os import linesep
 import argparse
+import psycopg2
 
-import netifaces
 from autobahn.twisted.websocket import (
     WebSocketServerProtocol,
     WebSocketServerFactory,
@@ -79,7 +79,7 @@ class DebugPackageServerFactory(WebSocketServerFactory):
     def establish_db_conn(self):
         conn = psycopg2.connect(
             dbname=config.DB_NAME,
-            user='postgres',
+            user=config.DB_USERNAME,
             host=config.DB_HOST,
         )
         self.db_conn = conn

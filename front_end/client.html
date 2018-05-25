@@ -42,7 +42,9 @@
                 socket = null;
                 isopen = false;
 
-                location.reload(true);
+                setTimeout(function() {
+                    location.reload(true);
+                }, 2000)
             }
         };
 
