@@ -82,6 +82,10 @@ class PackageHandler():
         )
         self.db_conn = conn
 
+    def publish_event(self, msg):
+        key = "events"
+        self.redis_conn.rpush(key, msg)
+
     def get_package_type(self, package):
         """
         Get package's type
@@ -129,17 +133,24 @@ class PackageHandler():
 
             if command_id == 0x80:
                 package_type = "Lock command"
+                logger.debug("There is a lock command")
+                self.publish_event("锁死指令已下发")
             elif command_id == 0x81:
                 package_type = "Lock command (limit rotate speed)"
+                self.publish_event("限转速指令已下发")
             elif command_id == 0x82:
                 package_type = "Lock command (limit torque)"
+                self.publish_event("限扭矩指令已下发")
             elif command_id == 0x90:
                 package_type = "Unlock command"
+                self.publish_event("解锁指令已下发")
 
             elif command_id == 0x55:
                 package_type = "Bind command"
+                self.publish_event("绑定指令已下发")
             elif command_id == 0xAA:
                 package_type = "Unbind command"
+                self.publish_event("解绑指令已下发")
 
         elif command_flag == 0x09:
             command_id = package['payload'][6]
